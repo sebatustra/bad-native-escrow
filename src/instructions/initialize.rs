@@ -46,9 +46,35 @@ pub fn initialize(
         &crate::ID
     );
     
-    assert!(maker.is_signer);
-    assert_eq!(&fundraiser_pda, fundraiser.key);
-    assert_eq!(*fundraiser.owner, system_program::ID);
+    // Check that maker is signing
+    if !maker.is_signer {
+        return Err(ProgramError::MissingRequiredSignature)
+    }
+
+    // check we have the correct pda for fundraiser
+    if &fundraiser_pda != fundraiser.key {
+        return Err(ProgramError::InvalidSeeds)
+    }
+
+    // check the fundraiser owner is system program since it has not been initialized
+    if *fundraiser.owner != system_program::ID {
+        return Err(ProgramError::InvalidAccountOwner)
+    }
+
+    // we check that data is empty
+    if !fundraiser.data_is_empty() {
+        return Err(ProgramError::AccountAlreadyInitialized)
+    }
+
+    // we check token_program id is correct
+    if !spl_token::check_id(token_program.key) {
+        return Err(ProgramError::IncorrectProgramId)
+    }
+
+    // we check the id of system_program
+    if !system_program::check_id(&system_program.key) {
+        return Err(ProgramError::IncorrectProgramId)
+    }
 
     let rent = Rent::get()?;
 

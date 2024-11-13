@@ -1,10 +1,10 @@
 
 use solana_program::{
-    account_info::AccountInfo, 
-    pubkey::Pubkey, 
-    entrypoint::ProgramResult
+    account_info::AccountInfo, entrypoint::ProgramResult, pubkey::Pubkey
 };
 use borsh::{BorshDeserialize, BorshSerialize};
+
+use crate::{constants::SECONDS_TO_DAYS, error::FundraiserError};
 
 #[derive(Debug, Clone, Copy, BorshDeserialize, BorshSerialize)]
 pub struct Fundraiser {
@@ -52,9 +52,14 @@ impl Fundraiser {
     #[inline]
     pub fn increase_amount(
         fundraiser: &AccountInfo,
-        amount_to_increase: u64
+        amount_to_increase: u64,
+        current_time: i64
     ) -> ProgramResult {
         let mut fundraiser_account = Self::try_from_slice(&fundraiser.try_borrow_mut_data()?)?;
+
+        if fundraiser_account.duration > ((current_time - fundraiser_account.time_started) / SECONDS_TO_DAYS) as u8 {
+            return Err(FundraiserError::FundraiserEnded.into())
+        }
 
         fundraiser_account.current_amount += amount_to_increase;
 
