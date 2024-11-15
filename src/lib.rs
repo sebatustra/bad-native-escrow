@@ -2,6 +2,7 @@ mod state;
 mod instructions;
 mod constants;
 mod error;
+mod tests;
 
 use solana_program::{
     account_info::AccountInfo, 

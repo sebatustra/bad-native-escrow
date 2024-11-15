@@ -2,16 +2,17 @@ use borsh::BorshDeserialize;
 use solana_program::{
     account_info::AccountInfo, 
     entrypoint::ProgramResult, 
-    program::{invoke, invoke_signed}, 
+    program::invoke_signed, 
     program_error::ProgramError, 
     program_pack::Pack, 
     pubkey::Pubkey, 
     rent::Rent, 
     system_instruction::create_account, 
     system_program, 
-    sysvar::Sysvar
+    sysvar::Sysvar,
+    msg
 };
-use spl_token::instruction::initialize_account;
+use spl_token::instruction::initialize_account3;
 use crate::{
     constants::{
         AMOUNT_TO_RAISE_OFFSET, 
@@ -45,6 +46,11 @@ pub fn initialize(
         &[b"fundraiser", maker.key.as_ref()], 
         &crate::ID
     );
+
+    let (vault_pda, vault_bump) = Pubkey::find_program_address(
+        &[b"vault", fundraiser.key.as_ref()], 
+        &crate::ID
+    );
     
     // Check that maker is signing
     if !maker.is_signer {
@@ -53,6 +59,10 @@ pub fn initialize(
 
     // check we have the correct pda for fundraiser
     if &fundraiser_pda != fundraiser.key {
+        return Err(ProgramError::InvalidSeeds)
+    }
+
+    if &vault_pda != vault.key {
         return Err(ProgramError::InvalidSeeds)
     }
 
@@ -94,6 +104,8 @@ pub fn initialize(
         &[&[b"fundraiser", maker.key.as_ref(), &[bump]]]
     )?;
 
+    msg!("init_ix invoked succesfully");
+
     Fundraiser::init(
         fundraiser, 
         maker.key, 
@@ -104,6 +116,8 @@ pub fn initialize(
         duration, 
         bump
     )?;
+
+    msg!("Fundraiser::init invoked succesfully");
 
     let vault_len = spl_token::state::Account::LEN;
     let vault_minimum_balance = rent.minimum_balance(vault_len);
@@ -116,9 +130,15 @@ pub fn initialize(
         token_program.key
     );
 
-    invoke(&create_vault_ix, &[maker.clone(), vault.clone()])?;
+    invoke_signed(
+        &create_vault_ix, 
+        &[maker.clone(), vault.clone(), token_program.clone()],
+        &[&[b"vault", fundraiser.key.as_ref(), &[vault_bump]]]
+    )?;
 
-    let initialize_vault_ix = initialize_account(
+    msg!("create_vault_ix invoked succesfully");
+
+    let initialize_vault_ix = initialize_account3(
         token_program.key, 
         vault.key, 
         mint_to_raise.key, 
@@ -132,10 +152,11 @@ pub fn initialize(
             mint_to_raise.clone(),
             fundraiser.clone(),
             token_program.clone(),
-            system_program.clone()
-        ], 
+        ],
         &[&[b"fundraiser", maker.key.as_ref(), &[bump]]]
     )?;
     
+    msg!("initialize_vault_ix invoked succesfully");
+
     Ok(())
 }

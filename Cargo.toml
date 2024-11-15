@@ -11,3 +11,9 @@ solana-program = "=2.0.10"
 spl-token = { version = "=6.0.0", features = ["no-entrypoint"] }
 borsh = { version = "1.5.1", features = ["derive"] }
 thiserror = "2.0.3"
+
+[dev-dependencies]
+mollusk-svm = { git = "https://github.com/deanmlittle/mollusk" }
+mollusk-token = { git = "https://github.com/deanmlittle/mollusk" }
+solana-sdk = "=2.0.10"
+spl-token = { version = "=6.0.0", features = ["no-entrypoint"] }

@@ -31,10 +31,8 @@ impl Fundraiser {
         duration: u8,
         bump: u8
     ) -> ProgramResult {
-
-        let mut fundraiser_account = Self::try_from_slice(&fundraiser.try_borrow_mut_data()?)?;
-
-        fundraiser_account.clone_from(&Self {
+        
+        let fundraiser_data = Fundraiser {
             maker: *maker,
             mint_to_raise: *mint_to_raise,
             amount_to_raise,
@@ -42,9 +40,10 @@ impl Fundraiser {
             time_started,
             duration,
             bump
-        });
-
-        fundraiser_account.serialize(&mut *fundraiser.data.borrow_mut())?;
+        };
+        
+        // Serialize the new instance directly into the account data
+        fundraiser_data.serialize(&mut *fundraiser.data.borrow_mut())?;
 
         Ok(())
     }
